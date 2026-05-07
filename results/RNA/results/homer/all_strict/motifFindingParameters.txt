@@ -1,0 +1,1 @@
+cmd = /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/homer/bed/all_strict.bed hg38 /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/homer/all_strict -size 500 -mask -bg /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/homer/bed/background_all_peaks.bed -h -p 16 -nomotif

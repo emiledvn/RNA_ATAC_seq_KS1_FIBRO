@@ -1,0 +1,368 @@
+Config loaded.
+
+========== B03: ATAC-seq DIFFERENTIAL ACCESSIBILITY ==========
+
+>>> Loading ATAC-seq cohort...
+  [ATAC] 6 KS_I | 4 control | 10 total
+  Aligned: 158356 peaks x 10 samples
+>>> RUV pass 1 (k = 2)...
+converting counts to integer mode
+null device 
+          1 
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_RLE_normalisation.pdf
+>>> Final DESeq2 model...
+using 'ashr' for LFC shrinkage. If used in published research, please cite:
+    Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
+    https://doi.org/10.1093/biostatistics/kxw041
+
+=== B03 DA SUMMARY ===
+  Opening peaks (UP)  : 353
+  Closing peaks (DOWN): 134
+  Total DA peaks      : 487
+  UP/DOWN ratio       : 2.63
+>>> Annotating peaks...
+'select()' returned 1:many mapping between keys and columns
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_PCA.pdf
+Warning messages:
+1: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_sample_distances.pdf
+There were 23 warnings (use warnings() to see them)
+Warning message:
+In title(...) : font width unknown for character 0x80
+null device 
+          1 
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_dispersion.pdf
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_volcano.pdf
+Warning messages:
+1: Removed 41606 rows containing missing values or values outside the scale range
+(`geom_point()`). 
+2: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+3: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_MA_plot.pdf
+Warning messages:
+1: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_asymmetry.pdf
+Warning messages:
+1: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_peak_annotation.pdf
+Warning messages:
+1: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_pvalue_histogram.pdf
+Warning messages:
+1: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_RUV_factors.pdf
+Warning messages:
+1: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_GO_opening.pdf
+                   ID
+GO:0048592 GO:0048592
+GO:0007626 GO:0007626
+GO:0030282 GO:0030282
+GO:0051893 GO:0051893
+GO:0090109 GO:0090109
+GO:0048167 GO:0048167
+GO:0050804 GO:0050804
+GO:0099177 GO:0099177
+GO:0031346 GO:0031346
+GO:0150116 GO:0150116
+GO:0031214 GO:0031214
+GO:0070167 GO:0070167
+GO:0030501 GO:0030501
+GO:0110149 GO:0110149
+GO:0110148 GO:0110148
+GO:0003018 GO:0003018
+GO:0003253 GO:0003253
+GO:0014066 GO:0014066
+GO:0043542 GO:0043542
+GO:0055001 GO:0055001
+GO:0043410 GO:0043410
+GO:0090092 GO:0090092
+GO:0010975 GO:0010975
+GO:0045778 GO:0045778
+GO:0048041 GO:0048041
+GO:0001976 GO:0001976
+GO:0090132 GO:0090132
+GO:0035633 GO:0035633
+GO:0030198 GO:0030198
+GO:0043062 GO:0043062
+GO:0045229 GO:0045229
+GO:0090130 GO:0090130
+GO:0043087 GO:0043087
+GO:0045986 GO:0045986
+GO:0018108 GO:0018108
+GO:0071559 GO:0071559
+GO:0150115 GO:0150115
+GO:0033135 GO:0033135
+GO:0090287 GO:0090287
+GO:0003159 GO:0003159
+GO:0061154 GO:0061154
+GO:0070371 GO:0070371
+GO:0035296 GO:0035296
+GO:0097746 GO:0097746
+GO:0010632 GO:0010632
+GO:0010463 GO:0010463
+GO:0007173 GO:0007173
+GO:0051216 GO:0051216
+GO:0060973 GO:0060973
+                                                                                      Description
+GO:0048592                                                                      eye morphogenesis
+GO:0007626                                                                    locomotory behavior
+GO:0030282                                                                    bone mineralization
+GO:0051893                                                  regulation of focal adhesion assembly
+GO:0090109                                         regulation of cell-substrate junction assembly
+GO:0048167                                                      regulation of synaptic plasticity
+GO:0050804                                           modulation of chemical synaptic transmission
+GO:0099177                                                 regulation of trans-synaptic signaling
+GO:0031346                                    positive regulation of cell projection organization
+GO:0150116                                     regulation of cell-substrate junction organization
+GO:0031214                                                          biomineral tissue development
+GO:0070167                                            regulation of biomineral tissue development
+GO:0030501                                             positive regulation of bone mineralization
+GO:0110149                                                        regulation of biomineralization
+GO:0110148                                                                      biomineralization
+GO:0003018                                                 vascular process in circulatory system
+GO:0003253            cardiac neural crest cell migration involved in outflow tract morphogenesis
+GO:0014066                                  regulation of phosphatidylinositol 3-kinase signaling
+GO:0043542                                                             endothelial cell migration
+GO:0055001                                                                muscle cell development
+GO:0043410                                                    positive regulation of MAPK cascade
+GO:0090092 regulation of transmembrane receptor protein serine/threonine kinase signaling pathway
+GO:0010975                                            regulation of neuron projection development
+GO:0045778                                                    positive regulation of ossification
+GO:0048041                                                                focal adhesion assembly
+GO:0001976      nervous system process involved in regulation of systemic arterial blood pressure
+GO:0090132                                                                   epithelium migration
+GO:0035633                                                     maintenance of blood-brain barrier
+GO:0030198                                                      extracellular matrix organization
+GO:0043062                                                   extracellular structure organization
+GO:0045229                                          external encapsulating structure organization
+GO:0090130                                                                       tissue migration
+GO:0043087                                                          regulation of GTPase activity
+GO:0045986                                       negative regulation of smooth muscle contraction
+GO:0018108                                                      peptidyl-tyrosine phosphorylation
+GO:0071559                                            response to transforming growth factor beta
+GO:0150115                                                   cell-substrate junction organization
+GO:0033135                                          regulation of peptidyl-serine phosphorylation
+GO:0090287                              regulation of cellular response to growth factor stimulus
+GO:0003159                                                        morphogenesis of an endothelium
+GO:0061154                                                         endothelial tube morphogenesis
+GO:0070371                                                                  ERK1 and ERK2 cascade
+GO:0035296                                                            regulation of tube diameter
+GO:0097746                                                      blood vessel diameter maintenance
+GO:0010632                                                regulation of epithelial cell migration
+GO:0010463                                                         mesenchymal cell proliferation
+GO:0007173                                     epidermal growth factor receptor signaling pathway
+GO:0051216                                                                  cartilage development
+GO:0060973                                           cell migration involved in heart development
+           GeneRatio   BgRatio       pvalue    p.adjust      qvalue
+GO:0048592    11/193 159/18903 7.339556e-07 0.002277464 0.001985543
+GO:0007626    11/193 197/18903 5.939478e-06 0.007389120 0.006441996
+GO:0030282     8/193 123/18903 3.863339e-05 0.019480602 0.016983615
+GO:0051893     6/193  64/18903 4.804184e-05 0.019480602 0.016983615
+GO:0090109     6/193  64/18903 4.804184e-05 0.019480602 0.016983615
+GO:0048167    10/193 207/18903 5.471976e-05 0.019480602 0.016983615
+GO:0050804    15/193 448/18903 5.933313e-05 0.019480602 0.016983615
+GO:0099177    15/193 449/18903 6.084041e-05 0.019480602 0.016983615
+GO:0031346    13/193 352/18903 7.004579e-05 0.019480602 0.016983615
+GO:0150116     6/193  69/18903 7.363857e-05 0.019480602 0.016983615
+GO:0031214     9/193 174/18903 7.680517e-05 0.019480602 0.016983615
+GO:0070167     7/193 103/18903 8.992574e-05 0.019480602 0.016983615
+GO:0030501     5/193  45/18903 9.238875e-05 0.019480602 0.016983615
+GO:0110149     7/193 105/18903 1.015477e-04 0.019480602 0.016983615
+GO:0110148     9/193 181/18903 1.039022e-04 0.019480602 0.016983615
+GO:0003018    11/193 270/18903 1.080812e-04 0.019480602 0.016983615
+GO:0003253     3/193  10/18903 1.192818e-04 0.019480602 0.016983615
+GO:0014066     7/193 111/18903 1.439439e-04 0.022028213 0.019204677
+GO:0043542    11/193 281/18903 1.534596e-04 0.022028213 0.019204677
+GO:0055001     9/193 191/18903 1.561781e-04 0.022028213 0.019204677
+GO:0043410    15/193 496/18903 1.824250e-04 0.023586034 0.020562819
+GO:0090092    11/193 290/18903 2.017876e-04 0.023679284 0.020644117
+GO:0010975    14/193 446/18903 2.051162e-04 0.023679284 0.020644117
+GO:0045778     5/193  54/18903 2.220342e-04 0.023757656 0.020712443
+GO:0048041     6/193  85/18903 2.347533e-04 0.024246755 0.021138850
+GO:0001976     3/193  14/18903 3.510746e-04 0.032040722 0.027933801
+GO:0090132    12/193 369/18903 4.262885e-04 0.033264448 0.029000672
+GO:0035633     4/193  35/18903 4.305287e-04 0.033264448 0.029000672
+GO:0030198    11/193 318/18903 4.422476e-04 0.033264448 0.029000672
+GO:0043062    11/193 319/18903 4.540332e-04 0.033264448 0.029000672
+GO:0045229    11/193 321/18903 4.783956e-04 0.033264448 0.029000672
+GO:0090130    12/193 374/18903 4.805603e-04 0.033264448 0.029000672
+GO:0043087    12/193 376/18903 5.038444e-04 0.033264448 0.029000672
+GO:0045986     3/193  16/18903 5.320445e-04 0.034394463 0.029985844
+GO:0018108    12/193 380/18903 5.532751e-04 0.035036993 0.030546016
+GO:0071559    10/193 277/18903 5.772423e-04 0.035257553 0.030738305
+GO:0150115     6/193 101/18903 5.946129e-04 0.035482382 0.030934316
+GO:0033135     7/193 143/18903 6.739811e-04 0.037302820 0.032521413
+GO:0090287    11/193 338/18903 7.332806e-04 0.037302820 0.032521413
+GO:0003159     3/193  18/18903 7.636921e-04 0.037302820 0.032521413
+GO:0061154     3/193  18/18903 7.636921e-04 0.037302820 0.032521413
+GO:0070371    11/193 340/18903 7.695751e-04 0.037302820 0.032521413
+GO:0035296     7/193 147/18903 7.934213e-04 0.037302820 0.032521413
+GO:0097746     7/193 147/18903 7.934213e-04 0.037302820 0.032521413
+GO:0010632    10/193 292/18903 8.652760e-04 0.038589192 0.033642900
+GO:0010463     4/193  42/18903 8.705264e-04 0.038589192 0.033642900
+GO:0007173     6/193 110/18903 9.318111e-04 0.039608354 0.034531427
+GO:0051216     8/193 201/18903 1.097453e-03 0.046018878 0.040120263
+GO:0060973     3/193  21/18903 1.217009e-03 0.049043895 0.042757539
+                                                                                               geneID
+GO:0048592                           NTRK2/TTC8/BMP4/COL5A2/SHROOM2/FBN2/COL8A1/PITX2/BMP7/FAT3/HIPK2
+GO:0007626                              SNAP25/CNTN1/SOD2/PTEN/APP/NAV2/OPRD1/ZFHX3/SHANK2/HIPK2/ANKH
+GO:0030282                                                 ROR2/BMP4/FBN2/BMP7/ADGRV1/ANKH/GPC3/GPM6B
+GO:0051893                                                        ROCK2/PTEN/EFNA5/PEAK1/DUSP22/GPM6B
+GO:0090109                                                        ROCK2/PTEN/EFNA5/PEAK1/DUSP22/GPM6B
+GO:0048167                                 NTRK2/SNAP25/PTEN/APP/NEURL1/SHANK2/GRIA1/SORCS2/AGT/RIMS2
+GO:0050804   LRRC4C/ROR2/NTRK2/SNAP25/ADIPOQ/ABR/PTEN/APP/SLC6A6/NEURL1/SHANK2/GRIA1/SORCS2/AGT/RIMS2
+GO:0099177   LRRC4C/ROR2/NTRK2/SNAP25/ADIPOQ/ABR/PTEN/APP/SLC6A6/NEURL1/SHANK2/GRIA1/SORCS2/AGT/RIMS2
+GO:0031346                 ROR2/AUTS2/NTRK2/CUX1/CNTN1/ZDHHC15/BMP5/EFNA5/DVL3/NEURL1/BMP7/PLXNC1/AGT
+GO:0150116                                                        ROCK2/PTEN/EFNA5/PEAK1/DUSP22/GPM6B
+GO:0031214                                           ROR2/ROCK2/BMP4/FBN2/BMP7/ADGRV1/ANKH/GPC3/GPM6B
+GO:0070167                                                     ROCK2/BMP4/FBN2/BMP7/ADGRV1/ANKH/GPM6B
+GO:0030501                                                                BMP4/FBN2/BMP7/ADGRV1/GPM6B
+GO:0110149                                                     ROCK2/BMP4/FBN2/BMP7/ADGRV1/ANKH/GPM6B
+GO:0110148                                           ROR2/ROCK2/BMP4/FBN2/BMP7/ADGRV1/ANKH/GPC3/GPM6B
+GO:0003018                        ROCK2/ARHGAP42/KCNMA1/SOD2/VSTM4/CDH5/SLC6A6/DOCK4/AGT/ANGPT1/ABCC5
+GO:0003253                                                                            BMP4/PITX2/BMP7
+GO:0014066                                                    ROR2/NTRK2/RASGRP1/PTEN/FSHR/AGT/ANGPT1
+GO:0043542                            ROCK2/BMP4/STC1/VSTM4/PTEN/STARD13/CDH5/SCARB1/AGT/ANGPT1/FOXP1
+GO:0055001                                          NEBL/DYSF/BMP4/SMYD3/MEGF10/AGT/FOXP1/WFIKKN2/DMD
+GO:0043410 ROR2/ROCK2/NTRK2/BMP4/RASGRP1/PTEN/APP/ACKR3/DVL3/CCL3L3/SLC30A10/HIPK2/FSHR/DUSP22/ANGPT1
+GO:0090092                         LDLRAD4/BMP4/CDH5/FBN2/BMP5/BMP7/HIPK2/GPC3/PRDM16/WFIKKN2/RASL11B
+GO:0010975           LRRC4C/ROR2/NTRK2/CUX1/SNAP25/CNTN1/PTEN/ZDHHC15/BMP5/EFNA5/BMP7/FAT3/PLXNC1/AGT
+GO:0045778                                                                BMP4/FBN2/BMP7/ADGRV1/GPM6B
+GO:0048041                                                        ROCK2/PTEN/EFNA5/PEAK1/DUSP22/GPM6B
+GO:0001976                                                                              SOD2/NAV2/AGT
+GO:0090132                        ROCK2/BMP4/MCC/STC1/VSTM4/PTEN/STARD13/CDH5/SCARB1/AGT/ANGPT1/FOXP1
+GO:0035633                                                                       CDH5/WNK3/ANGPT1/DMD
+GO:0030198                       TGFBI/COL6A6/COL5A2/APP/COL8A1/ST7/IER3IP1/ADAMTS3/AGT/COL27A1/GPM6B
+GO:0043062                       TGFBI/COL6A6/COL5A2/APP/COL8A1/ST7/IER3IP1/ADAMTS3/AGT/COL27A1/GPM6B
+GO:0045229                       TGFBI/COL6A6/COL5A2/APP/COL8A1/ST7/IER3IP1/ADAMTS3/AGT/COL27A1/GPM6B
+GO:0090130                        ROCK2/BMP4/MCC/STC1/VSTM4/PTEN/STARD13/CDH5/SCARB1/AGT/ANGPT1/FOXP1
+GO:0043087               NTRK2/ARHGAP42/TTC8/TBC1D10A/ABR/RASGRP1/EFNA5/ASAP1/DVL3/CCL3L3/RGS9/PLXNC1
+GO:0045986                                                                      ARHGAP42/KCNMA1/DOCK4
+GO:0018108                     ROR2/NTRK2/ADIPOQ/CNTN1/APP/EFNA5/PEAK1/NEURL1/HIPK2/AGT/DUSP22/ANGPT1
+GO:0071559                          ROCK2/LDLRAD4/CDH5/FBN2/ZFHX3/HIPK2/DUSP22/PRDM16/WFIKKN2/RASL11B
+GO:0150115                                                        ROCK2/PTEN/EFNA5/PEAK1/DUSP22/GPM6B
+GO:0033135                                                      NTRK2/SMYD3/PTEN/APP/OPRD1/ANGPT1/DMD
+GO:0090287                       LDLRAD4/BMP4/CDH5/FBN2/ADAMTS3/HIPK2/GPC3/AGT/PRDM16/WFIKKN2/RASL11B
+GO:0003159                                                                         BMP4/STARD13/FOXP1
+GO:0061154                                                                         BMP4/STARD13/FOXP1
+GO:0070371                         BMP4/ADIPOQ/RASGRP1/PTEN/APP/ACKR3/CCL3L3/SLC30A10/FSHR/AGT/ANGPT1
+GO:0035296                                                 ROCK2/ARHGAP42/KCNMA1/SOD2/VSTM4/DOCK4/AGT
+GO:0097746                                                 ROCK2/ARHGAP42/KCNMA1/SOD2/VSTM4/DOCK4/AGT
+GO:0010632                                   ROCK2/BMP4/MCC/STC1/PTEN/STARD13/SCARB1/AGT/ANGPT1/FOXP1
+GO:0010463                                                                        BMP4/BMP7/GPC3/NFIB
+GO:0007173                                                     KIF16B/FAM83B/NEURL1/SLC30A10/AGT/GRB7
+GO:0051216                                               TGFBI/BMP4/TRPS1/STC1/BMP5/BMP7/NFIB/COL27A1
+GO:0060973                                                                            BMP4/PITX2/BMP7
+           Count
+GO:0048592    11
+GO:0007626    11
+GO:0030282     8
+GO:0051893     6
+GO:0090109     6
+GO:0048167    10
+GO:0050804    15
+GO:0099177    15
+GO:0031346    13
+GO:0150116     6
+GO:0031214     9
+GO:0070167     7
+GO:0030501     5
+GO:0110149     7
+GO:0110148     9
+GO:0003018    11
+GO:0003253     3
+GO:0014066     7
+GO:0043542    11
+GO:0055001     9
+GO:0043410    15
+GO:0090092    11
+GO:0010975    14
+GO:0045778     5
+GO:0048041     6
+GO:0001976     3
+GO:0090132    12
+GO:0035633     4
+GO:0030198    11
+GO:0043062    11
+GO:0045229    11
+GO:0090130    12
+GO:0043087    12
+GO:0045986     3
+GO:0018108    12
+GO:0071559    10
+GO:0150115     6
+GO:0033135     7
+GO:0090287    11
+GO:0003159     3
+GO:0061154     3
+GO:0070371    11
+GO:0035296     7
+GO:0097746     7
+GO:0010632    10
+GO:0010463     4
+GO:0007173     6
+GO:0051216     8
+GO:0060973     3
+Warning messages:
+1: `aes_string()` was deprecated in ggplot2 3.0.0.
+i Please use tidy evaluation idioms with `aes()`.
+i See also `vignette("ggplot2-in-packages")` for more information.
+i The deprecated feature was likely used in the enrichplot package.
+  Please report the issue at
+  <https://github.com/GuangchuangYu/enrichplot/issues>. 
+2: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+3: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/plots/B03_ATAC_GO_closing.pdf
+                   ID                                           Description
+GO:0007163 GO:0007163         establishment or maintenance of cell polarity
+GO:0099515 GO:0099515                        actin filament-based transport
+GO:0001675 GO:0001675                                     acrosome assembly
+GO:0010927 GO:0010927 cellular component assembly involved in morphogenesis
+           GeneRatio   BgRatio       pvalue   p.adjust     qvalue
+GO:0007163      7/76 234/18903 4.308940e-05 0.04453809 0.04193421
+GO:0099515      3/76  21/18903 7.884717e-05 0.04453809 0.04193421
+GO:0001675      3/76  23/18903 1.043855e-04 0.04453809 0.04193421
+GO:0010927      5/76 119/18903 1.175147e-04 0.04453809 0.04193421
+                                               geneID Count
+GO:0007163 SIPA1L3/DLG5/WDR1/CCL19/DOCK2/RHOBTB2/CDH5     7
+GO:0099515                          SYNE2/MYO7B/MYO1D     3
+GO:0001675                         TMF1/AGFG1/GARIN1A     3
+GO:0010927             TMF1/PHLDB2/WDR1/AGFG1/GARIN1A     5
+Warning messages:
+1: In grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  font width unknown for character 0x80
+
+=== Peak counts at different thresholds ===
+  LFC > 1.000 : UP=353 | DOWN=134 | Total=487
+  LFC > 0.750 : UP=542 | DOWN=204 | Total=746
+  LFC > 0.585 : UP=592 | DOWN=212 | Total=804
+  LFC > 0.500 : UP=606 | DOWN=212 | Total=818
+  -> /storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/results/session_info/B03_session_info.txt
+
+✓ B03 complete.
+

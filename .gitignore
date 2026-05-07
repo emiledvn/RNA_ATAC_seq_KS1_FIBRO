@@ -1,0 +1,20 @@
+# Large data files - don't commit to GitHub
+*.bam
+*.bam.bai
+*.rds
+*.html
+*.pdf
+
+# Sensitive
+GEO_submission/
+
+# Temporary files
+*.tmp
+*.log
+.Rhistory
+.RData
+.Rproj.user
+
+# OS
+.DS_Store
+Thumbs.db
