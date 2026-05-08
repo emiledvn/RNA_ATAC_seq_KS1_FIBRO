@@ -14,14 +14,17 @@ This repository contains analysis scripts for:
 - Integrated multi-omics analysis
 
 ## Directory Structure
-├── scripts/              # Analysis code
-│   ├── RNA/             # RNA-seq and ATAC-seq analysis scripts
-│   └── ATAC/            # ATAC-seq DiffBind analysis
-├── results/             # Analysis outputs
-│   ├── RNA/             # DE results, plots, tables
-│   ├── ATAC/            # DA results, plots, tables
-│   └── multiqc_plots/   # QC visualizations
-└── metadata/            # Sample sheets
+
+```text
+├── scripts/              # Analysis code 
+│   |── RNA/             # RNA-seq and ATAC-seq analysis scripts 
+│   └── ATAC/            # ATAC-seq DiffBind analysis 
+├── results/             # Analysis outputs 
+│   ├── RNA/             # DE results, plots, tables 
+│   ├── ATAC/            # DA results, plots, tables 
+│   └── multiqc_plots/   # QC visualizations 
+└── metadata/            # Sample sheets 
+```
 
 ## Requirements
 
