@@ -8,6 +8,51 @@
 # Sensitive
 GEO_submission/
 
+# Pipeline outputs
+results/
+
+# Nextflow
+work/
+.nextflow/
+.nextflow.log*
+
+# Large sequence/genomic files
+*.fastq.gz
+*.fq.gz
+*.bed.gz
+*.bigwig
+*.bw
+*.narrowPeak
+*.broadPeak
+
+# Temporary files
+*.tmp
+*.log
+.Rhistory
+.RData
+.Rproj.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+
+
+
+
+
+
+
+# Large data files - don't commit to GitHub
+*.bam
+*.bam.bai
+*.rds
+*.html
+*.pdf
+
+# Sensitive
+GEO_submission/
+
 # Temporary files
 *.tmp
 *.log
