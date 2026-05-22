@@ -1,7 +1,7 @@
 # B04_integration.R
 # Integration of RNA-seq and ATAC-seq results
 
-source("analysis/RNA/scripts/00_config.R")
+source("00_config.R")
 init_dirs()
 
 suppressPackageStartupMessages({

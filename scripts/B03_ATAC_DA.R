@@ -1,7 +1,7 @@
 # B03_ATAC_DA.R
 # Differential accessibility analysis with RUVSeq normalization
 
-source("/storage/volume01/emile/analysis/KABUKI_FIBRO_PROJECT/analysis/RNA/scripts/00_config.R")
+source("00_config.R")
 init_dirs()
 
 suppressPackageStartupMessages({
