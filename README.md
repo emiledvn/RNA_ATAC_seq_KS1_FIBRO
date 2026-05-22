@@ -68,4 +68,4 @@ Figure assembly scripts are not included; all source data required to reproduce 
 
 ## Citation
 
-Danvin E. et al. Transcriptomic and chromatin accessibility dataset from Kabuki syndrome type I skin fibroblasts. *Scientific Data* (2026).
+Danvin E. et al. Transcriptomic and chromatin accessibility dataset from Kabuki syndrome type I skin fibroblasts
