@@ -1,167 +1,428 @@
 # B04_integration.R
 # Integration of RNA-seq and ATAC-seq results
 
-source("00_config.R")
+source("scripts/00_config.R")
 init_dirs()
 
 suppressPackageStartupMessages({
   library(tidyverse)
   library(ggrepel)
+  library(pheatmap)
+  library(DESeq2)
+  library(limma)
+  library(grid)
+  library(gridExtra)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
 })
 
-# Load RNA differential expression results
+# ── 1. Load data ──────────────────────────────────────────────────────────────
+
 res_rna <- read.csv(PATHS$rna_de) %>%
-  dplyr::select(symbol, log2FoldChange, padj) %>%
+  dplyr::select(gene_id, symbol, log2FoldChange, padj) %>%
   dplyr::rename(logFC_RNA = log2FoldChange, padj_RNA = padj) %>%
-  filter(!is.na(symbol), symbol != "") %>%
-  group_by(symbol) %>% slice_min(padj_RNA, n = 1, with_ties = FALSE) %>% ungroup()
+  filter(!is.na(gene_id)) %>%
+  mutate(gene_id = sub("\\..*$", "", gene_id)) %>%
+  group_by(gene_id) %>%
+  slice_min(padj_RNA, n = 1, with_ties = FALSE) %>%
+  ungroup()
 
-# Load ATAC differential accessibility results (annotated peaks)
+# All peaks with an ENSEMBL annotation; symbol may be NA
 res_atac <- read.csv(PATHS$atac_annotated) %>%
-  dplyr::rename(symbol = SYMBOL) %>%
-  dplyr::select(symbol, log2FoldChange, padj, annotation) %>%
-  dplyr::rename(logFC_ATAC = log2FoldChange, padj_ATAC = padj) %>%
-  filter(!is.na(symbol)) %>%
-  group_by(symbol) %>% slice_min(padj_ATAC, n = 1, with_ties = FALSE) %>% ungroup()
+  dplyr::select(peak_id, ENSEMBL, SYMBOL, log2FoldChange, padj, annotation) %>%
+  dplyr::rename(
+    ensembl_atac = ENSEMBL,
+    symbol_atac  = SYMBOL,
+    logFC_ATAC   = log2FoldChange,
+    padj_ATAC    = padj
+  ) %>%
+  filter(!is.na(ensembl_atac))
 
-# Merge RNA and ATAC results
-merged_df <- inner_join(res_rna, res_atac, by = "symbol") %>%
+# ── 2. Merge and classify ─────────────────────────────────────────────────────
+
+merged_df <- inner_join(
+  res_rna,
+  res_atac,
+  by = c("gene_id" = "ensembl_atac")
+) %>%
   mutate(
+    label = case_when(
+      !is.na(symbol) & symbol != "" ~ symbol,
+      !is.na(symbol_atac) & symbol_atac != "" ~ symbol_atac,
+      TRUE ~ gene_id
+    ),
     sig_RNA  = padj_RNA  < P_CUTOFF & abs(logFC_RNA)  > LFC_CUTOFF_SOFT,
     sig_ATAC = padj_ATAC < P_CUTOFF & abs(logFC_ATAC) > LFC_CUTOFF_SOFT,
-    Category = case_when(
-      sig_RNA & sig_ATAC & sign(logFC_RNA) == sign(logFC_ATAC) & logFC_RNA > 0 ~ "Concordant_UP",
-      sig_RNA & sig_ATAC & sign(logFC_RNA) == sign(logFC_ATAC) & logFC_RNA < 0 ~ "Concordant_DOWN",
-      sig_RNA & sig_ATAC & sign(logFC_RNA) != sign(logFC_ATAC)                 ~ "Discordant",
-      TRUE ~ "Not_significant"
+    Direction = case_when(
+      sig_RNA & sig_ATAC & logFC_RNA > 0 & logFC_ATAC > 0 ~ "UP-Opening",
+      sig_RNA & sig_ATAC & logFC_RNA < 0 & logFC_ATAC < 0 ~ "DOWN-Closing",
+      sig_RNA & sig_ATAC & logFC_RNA > 0 & logFC_ATAC < 0 ~ "UP-Closing",
+      sig_RNA & sig_ATAC & logFC_RNA < 0 & logFC_ATAC > 0 ~ "DOWN-Opening",
+      TRUE ~ "Not significant"
     )
   )
 
-# Correlation between RNA and ATAC fold changes
-cor_res    <- cor.test(merged_df$logFC_RNA, merged_df$logFC_ATAC, method = "pearson")
-concordant <- merged_df %>%
-  filter(Category %in% c("Concordant_UP", "Concordant_DOWN")) %>%
+# ── 3. DEG-DAR association table ──────────────────────────────────────────────
+
+deg_dar <- merged_df %>%
+  filter(sig_RNA & sig_ATAC) %>%
+  dplyr::select(gene_id, label, logFC_RNA, padj_RNA,
+                peak_id, logFC_ATAC, padj_ATAC,
+                annotation, Direction) %>%
+  dplyr::rename(symbol = label) %>%
   arrange(desc(abs(logFC_RNA)))
 
-write.csv(concordant, PATHS$integration, row.names = FALSE)
+n_pairs <- nrow(deg_dar)
+n_genes <- n_distinct(deg_dar$gene_id)
 
-# Export all significant overlapping genes
-overlap_soft <- merged_df %>%
-  filter(sig_RNA & sig_ATAC) %>%
-  mutate(
-    rna_lfc   = logFC_RNA, atac_lfc  = logFC_ATAC,
-    rna_padj  = padj_RNA,  atac_padj = padj_ATAC,
-    concordant = Category %in% c("Concordant_UP", "Concordant_DOWN")
-  ) %>%
-  dplyr::select(symbol, rna_lfc, rna_padj, atac_lfc, atac_padj,
-                annotation, concordant, Category)
+message(">>> DEG-DAR associations")
+message("  Total peak-gene pairs : ", n_pairs)
+message("  Unique genes          : ", n_genes)
+message("  UP-Opening            : ", sum(deg_dar$Direction == "UP-Opening"))
+message("  DOWN-Closing          : ", sum(deg_dar$Direction == "DOWN-Closing"))
+message("  UP-Closing            : ", sum(deg_dar$Direction == "UP-Closing"))
+message("  DOWN-Opening          : ", sum(deg_dar$Direction == "DOWN-Opening"))
 
-write.csv(overlap_soft,
-          file.path(PATHS$tables, "B04_RNA_ATAC_overlap_soft.csv"),
-          row.names = FALSE)
+write.csv(deg_dar, PATHS$integration, row.names = FALSE)
+message("  -> ", PATHS$integration)
 
-message("  Genes in merged dataset : ", nrow(merged_df))
-message("  Concordant UP           : ", sum(merged_df$Category == "Concordant_UP"))
-message("  Concordant DOWN         : ", sum(merged_df$Category == "Concordant_DOWN"))
-message("  Discordant              : ", sum(merged_df$Category == "Discordant"))
-message("  Pearson R (all genes)   : ", round(cor_res$estimate, 3))
-message("  Pearson p-value         : ", formatC(cor_res$p.value, format = "e", digits = 2))
+# ── 4. Figure 7A — DEG-DAR association scatter ────────────────────────────────
 
-# Candidate genes of interest (Wnt/PCP pathway)
-wnt_pcp <- c("VANGL2","WNT5A","ROR2","CELSR1","PRICKLE1",
-             "FZD6","DVL1","DVL3","RORB","ANKRD6","DAAM1")
+message(">>> Figure 7A: DEG-DAR scatter")
 
-print(merged_df %>%
-  filter(symbol %in% wnt_pcp) %>%
-  dplyr::select(symbol, logFC_RNA, padj_RNA, logFC_ATAC, padj_ATAC, Category), n = Inf)
+# Colour and shape per direction — concordant same direction = filled circle,
+# discordant = X, matching the visual style of the original figure
+dir_colors <- c(
+  "UP-Opening"      = "#2c7bb6",
+  "DOWN-Closing"    = "#2c7bb6",
+  "UP-Closing"      = "#d7191c",
+  "DOWN-Opening"    = "#d7191c",
+  "Not significant" = "grey80"
+)
 
-# Quadrant plot: RNA vs ATAC log2 fold changes
-message(">>> Quadrant plot...")
+dir_shapes <- c(
+  "UP-Opening"      = 16,
+  "DOWN-Closing"    = 16,
+  "UP-Closing"      = 16,
+  "DOWN-Opening"    = 16,
+  "Not significant" = 16
+)
 
-top_labels   <- head(concordant$symbol, 15)
-story_labels <- intersect(wnt_pcp, merged_df$symbol)
-all_labels   <- unique(c(top_labels, story_labels))
+dir_sizes <- c(
+  "UP-Opening"      = 3.5,
+  "DOWN-Closing"    = 3.5,
+  "UP-Closing"      = 3.5,
+  "DOWN-Opening"    = 3.5,
+  "Not significant" = 1.5
+)
 
-cat_colors <- c(Concordant_UP = "firebrick", Concordant_DOWN = "navy",
-                Discordant = "darkorange", Not_significant = "grey88")
+dir_labels <- c(
+  "UP-Opening"      = "Concordant",
+  "DOWN-Closing"    = "Concordant",
+  "UP-Closing"      = "Opposite direction",
+  "DOWN-Opening"    = "Opposite direction",
+  "Not significant" = "Not significant"
+)
 
-p_quad <- ggplot(merged_df, aes(logFC_ATAC, logFC_RNA)) +
-  geom_point(aes(color = Category), alpha = 0.6, size = 1.2) +
-  scale_color_manual(values = cat_colors,
-    labels = c("Concordant UP","Concordant DOWN","Discordant","Not significant")) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "grey40") +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
-  geom_text_repel(data = filter(merged_df, symbol %in% all_labels),
-    aes(label = symbol), size = 3.2, fontface = "bold",
-    box.padding = 0.5, max.overlaps = Inf) +
-  labs(title    = "B04 - RNA-seq vs ATAC-seq concordance",
-       subtitle = sprintf("R = %.3f | Concordant: %d genes",
-                          cor_res$estimate, nrow(concordant)),
-       x = "ATAC-seq Log2 Fold Change",
-       y = "RNA-seq Log2 Fold Change", color = "") +
-  theme_bw() + theme(aspect.ratio = 1, legend.position = "bottom")
+# All DEG-DAR pairs labelled — one arrow per point
+label_df <- merged_df %>%
+  filter(sig_RNA & sig_ATAC)
 
-save_plot(p_quad, "B04_integration_quadrant", width = 8, height = 8)
+# Significant points plotted on top
+merged_plot <- merged_df %>%
+  arrange(Direction == "Not significant")
 
-# Ranked concordant genes
-p_ranked <- concordant %>% head(30) %>%
-  mutate(symbol = factor(symbol, levels = rev(symbol))) %>%
-  ggplot(aes(x = logFC_RNA, y = symbol,
-             color = Category, size = abs(logFC_ATAC))) +
-  geom_point(alpha = 0.85) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
-  scale_color_manual(values = c(Concordant_UP = "firebrick", Concordant_DOWN = "navy")) +
-  scale_size_continuous(name = "|ATAC LFC|", range = c(2, 7)) +
-  labs(title = "B04 - Top concordant genes (ranked by RNA LFC)",
-       subtitle = "Point size = |ATAC Log2FC|",
-       x = "RNA-seq Log2 Fold Change", y = NULL, color = NULL) +
-  theme_bw()
+lim <- ceiling(max(abs(c(merged_df$logFC_RNA, merged_df$logFC_ATAC)),
+                   na.rm = TRUE)) + 0.4
 
-save_plot(p_ranked, "B04_concordant_ranked", width = 7, height = 8)
+p_scatter <- ggplot(merged_plot, aes(logFC_RNA, logFC_ATAC)) +
+  geom_hline(yintercept = 0, colour = "grey70", linewidth = 0.5) +
+  geom_vline(xintercept = 0, colour = "grey70", linewidth = 0.5) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dotted", colour = "grey55", linewidth = 0.5) +
+  geom_point(
+    aes(color = Direction, shape = Direction, size = Direction),
+    alpha = 0.88
+  ) +
+  scale_color_manual(values = dir_colors, labels = dir_labels, name = NULL) +
+  scale_shape_manual(values = dir_shapes, labels = dir_labels, name = NULL) +
+  scale_size_manual(values  = dir_sizes,  labels = dir_labels, name = NULL) +
+  geom_text_repel(
+    data          = label_df,
+    aes(label     = label),
+    size          = 2.9,
+    fontface      = "italic",
+    colour        = "grey20",
+    box.padding   = 0.35,
+    point.padding = 0.2,
+    segment.size  = 0.3,
+    segment.color = "grey55",
+    force         = 2,
+    max.overlaps  = Inf,
+    show.legend   = FALSE
+  ) +
+  scale_x_continuous(limits = c(-lim, lim), breaks = -4:4) +
+  scale_y_continuous(limits = c(-lim, lim), breaks = -4:4) +
+  coord_equal(xlim = c(-lim, lim), ylim = c(-lim, lim)) +
+  labs(
+    title    = "Concordance of transcriptional and chromatin accessibility changes",
+    subtitle = sprintf(
+      "%d peak-gene pairs across %d genes (FDR<0.05, |LFC|>%.3f)",
+      n_pairs, n_genes, LFC_CUTOFF_SOFT
+    ),
+    x = expression(RNA~~log[2]~fold~change),
+    y = expression(ATAC~~log[2]~fold~change)
+  ) +
+  theme_bw(base_size = 11) +
+  theme(
+    panel.grid.minor  = element_blank(),
+    panel.grid.major  = element_line(colour = "grey93", linewidth = 0.3),
+    plot.title        = element_text(face = "bold", size = 11),
+    plot.subtitle     = element_text(size = 8.5, colour = "grey40"),
+    axis.title        = element_text(size = 10),
+    legend.position   = "top",
+    legend.spacing.x  = unit(0.3, "cm"),
+    legend.text       = element_text(size = 9)
+  ) +
+  guides(color = guide_legend(override.aes = list(size = 3)))
 
-# Wnt/PCP pathway highlight
-wnt_df <- merged_df %>% filter(symbol %in% wnt_pcp) %>%
-  mutate(sig_label = case_when(
-    padj_RNA < P_CUTOFF & padj_ATAC < P_CUTOFF ~ "Both significant",
-    padj_RNA < P_CUTOFF                          ~ "RNA only",
-    padj_ATAC < P_CUTOFF                         ~ "ATAC only",
-    TRUE                                         ~ "Not significant"))
+save_plot(p_scatter, "B04_DEG_DAR_scatter", width = 7, height = 7)
 
-if (nrow(wnt_df) > 0) {
-  p_wnt <- ggplot(wnt_df, aes(logFC_ATAC, logFC_RNA, color = sig_label)) +
-    geom_point(size = 4) +
-    geom_text_repel(aes(label = symbol), size = 4, fontface = "bold", max.overlaps = Inf) +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
-    scale_color_manual(values = c("Both significant" = "firebrick", "RNA only" = "#e67e22",
-                                  "ATAC only" = "#2980b9", "Not significant" = "grey60")) +
-    labs(title = "B04 - Wnt/PCP candidate loci",
-         x = "ATAC-seq Log2 Fold Change", y = "RNA-seq Log2 Fold Change", color = "") +
-    theme_bw() + theme(aspect.ratio = 1, legend.position = "bottom")
-  save_plot(p_wnt, "B04_WntPCP_highlight", width = 7, height = 7)
+# Focused scatter: sig points only, auto scale, segment arrows on all labels
+lim_focused <- max(abs(c(label_df$logFC_RNA, label_df$logFC_ATAC)),
+                   na.rm = TRUE) * 1.15
+
+p_scatter_focused <- ggplot(label_df, aes(logFC_RNA, logFC_ATAC)) +
+  geom_hline(yintercept = 0, colour = "grey70", linewidth = 0.5) +
+  geom_vline(xintercept = 0, colour = "grey70", linewidth = 0.5) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dotted", colour = "grey55", linewidth = 0.5) +
+  geom_point(
+    aes(color = Direction, shape = Direction, size = Direction),
+    alpha = 0.88
+  ) +
+  scale_color_manual(values = dir_colors, labels = dir_labels, name = NULL) +
+  scale_shape_manual(values = dir_shapes, labels = dir_labels, name = NULL) +
+  scale_size_manual(values  = dir_sizes,  labels = dir_labels, name = NULL) +
+  geom_text_repel(
+    aes(label = label),
+    size               = 2.9,
+    fontface           = "italic",
+    colour             = "grey20",
+    box.padding        = 0.4,
+    point.padding      = 0.3,
+    segment.size       = 0.4,
+    segment.color      = "grey40",
+    force              = 3,
+    min.segment.length = 0,
+    max.overlaps       = Inf,
+    show.legend        = FALSE
+  ) +
+  scale_x_continuous(limits = c(-lim_focused, lim_focused)) +
+  scale_y_continuous(limits = c(-lim_focused, lim_focused)) +
+  coord_equal(
+    xlim = c(-lim_focused, lim_focused),
+    ylim = c(-lim_focused, lim_focused)
+  ) +
+  labs(
+    title    = "Concordance of transcriptional and chromatin accessibility changes",
+    subtitle = sprintf(
+      "%d peak-gene pairs across %d genes (FDR<0.05, |LFC|>%.3f)",
+      n_pairs, n_genes, LFC_CUTOFF_SOFT
+    ),
+    x = expression(RNA~~log[2]~fold~change),
+    y = expression(ATAC~~log[2]~fold~change)
+  ) +
+  theme_bw(base_size = 11) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(colour = "grey93", linewidth = 0.3),
+    plot.title       = element_text(face = "bold", size = 11),
+    plot.subtitle    = element_text(size = 8.5, colour = "grey40"),
+    axis.title       = element_text(size = 10),
+    legend.position  = "top",
+    legend.spacing.x = unit(0.3, "cm"),
+    legend.text      = element_text(size = 9)
+  ) +
+  guides(color = guide_legend(override.aes = list(size = 3)))
+
+save_plot(p_scatter_focused, "B04_DEG_DAR_scatter_focused", width = 7, height = 7)
+
+
+# ── 5. Figure 7B — Dual heatmap ───────────────────────────────────────────────
+
+message(">>> Figure 7B: Dual heatmap")
+
+heatmap_ensg <- unique(deg_dar$gene_id)
+
+# RNA corrected matrix
+dds_rna <- readRDS(PATHS$dds_rna)
+vsd_rna <- vst(dds_rna, blind = FALSE)
+mat_rna_all <- limma::removeBatchEffect(
+  assay(vsd_rna),
+  covariates = as.matrix(colData(dds_rna)[, paste0("W_", seq_len(K_FACTOR)), drop = FALSE]),
+  batch2     = dds_rna$sex,
+  design     = model.matrix(~ status, colData(dds_rna))
+)
+rownames(mat_rna_all) <- sub("\\..*$", "", rownames(mat_rna_all))
+
+ensg_in_rna <- heatmap_ensg[heatmap_ensg %in% rownames(mat_rna_all)]
+mat_rna     <- mat_rna_all[ensg_in_rna, , drop = FALSE]
+
+# Row display labels: symbol if available, gene_id otherwise
+row_labels <- deg_dar %>%
+  distinct(gene_id, symbol) %>%
+  filter(gene_id %in% ensg_in_rna) %>%
+  group_by(gene_id) %>% slice(1) %>% ungroup()
+
+rownames(mat_rna) <- row_labels$symbol[match(ensg_in_rna, row_labels$gene_id)]
+
+# ATAC corrected matrix
+dds_atac <- readRDS(PATHS$dds_atac)
+vsd_atac <- vst(dds_atac, blind = FALSE)
+mat_atac_all <- limma::removeBatchEffect(
+  assay(vsd_atac),
+  covariates = as.matrix(colData(dds_atac)[, paste0("W_", seq_len(K_FACTOR)), drop = FALSE]),
+  batch2     = dds_atac$sex,
+  design     = model.matrix(~ status, colData(dds_atac))
+)
+
+# Aggregate peaks per gene: mean VST across all peaks annotated to that ENSG
+anno_df <- read.csv(PATHS$atac_annotated) %>%
+  dplyr::rename(ensembl_atac = ENSEMBL)
+
+mat_atac_gene <- lapply(ensg_in_rna, function(g) {
+  pids <- anno_df %>%
+    filter(ensembl_atac == g, peak_id %in% rownames(mat_atac_all)) %>%
+    pull(peak_id)
+  if (length(pids) == 0) return(NULL)
+  colMeans(mat_atac_all[pids, , drop = FALSE])
+}) %>% setNames(ensg_in_rna)
+
+keep        <- !sapply(mat_atac_gene, is.null)
+ensg_shared <- ensg_in_rna[keep]
+
+if (length(ensg_shared) == 0) stop("No ATAC peaks found for any DEG-DAR gene — check anno_df$ensembl_atac vs ensg_in_rna")
+
+mat_atac <- do.call(rbind, mat_atac_gene[keep])
+shared_labels <- row_labels$symbol[match(ensg_shared, row_labels$gene_id)]
+rownames(mat_rna)  <- shared_labels[match(ensg_in_rna,  ensg_shared)]
+rownames(mat_atac) <- shared_labels
+mat_rna <- mat_rna[match(ensg_shared, ensg_in_rna), , drop = FALSE]
+
+message("  Genes in dual heatmap: ", length(ensg_shared))
+
+# Shared row order from RNA clustering
+row_order    <- hclust(dist(t(scale(t(mat_rna)))), method = "ward.D2")$order
+mat_rna_ord  <- mat_rna[row_order,  , drop = FALSE]
+mat_atac_ord <- mat_atac[row_order, , drop = FALSE]
+
+# Column order: status then sex
+meta_rna_df  <- as.data.frame(colData(dds_rna))[,  c("status", "sex")]
+meta_atac_df <- as.data.frame(colData(dds_atac))[, c("status", "sex")]
+col_ord_rna  <- order(meta_rna_df$status,  meta_rna_df$sex)
+col_ord_atac <- order(meta_atac_df$status, meta_atac_df$sex)
+mat_rna_ord  <- mat_rna_ord[,  col_ord_rna,  drop = FALSE]
+mat_atac_ord <- mat_atac_ord[, col_ord_atac, drop = FALSE]
+anno_col_rna  <- meta_rna_df[col_ord_rna,  , drop = FALSE]
+anno_col_atac <- meta_atac_df[col_ord_atac, , drop = FALSE]
+anno_colors   <- list(status = COLORS_STATUS, sex = COLORS_SEX)
+
+fsize_row <- if (length(ensg_shared) > 40) 5 else if (length(ensg_shared) > 20) 7 else 9
+
+ph_rna <- pheatmap(
+  mat_rna_ord,
+  scale             = "row",
+  color             = colorRampPalette(c("navy", "white", "firebrick3"))(100),
+  breaks            = seq(-3, 3, length.out = 101),
+  cluster_rows      = FALSE,
+  cluster_cols      = FALSE,
+  annotation_col    = anno_col_rna,
+  annotation_colors = anno_colors,
+  show_colnames     = FALSE,
+  show_rownames     = TRUE,
+  fontsize_row      = fsize_row,
+  main              = "RNA-seq (VST, z-scored)",
+  legend            = TRUE,
+  silent            = TRUE
+)
+
+ph_atac <- pheatmap(
+  mat_atac_ord,
+  scale             = "row",
+  color             = colorRampPalette(c("navy", "white", "firebrick3"))(100),
+  breaks            = seq(-3, 3, length.out = 101),
+  cluster_rows      = FALSE,
+  cluster_cols      = FALSE,
+  annotation_col    = anno_col_atac,
+  annotation_colors = anno_colors,
+  show_colnames     = FALSE,
+  show_rownames     = FALSE,
+  main              = "ATAC-seq (mean VST per gene, z-scored)",
+  legend            = FALSE,
+  silent            = TRUE
+)
+
+pdf(
+  file.path(PATHS$plots, "B04_DEG_DAR_heatmap.pdf"),
+  width  = 14,
+  height = max(6, length(ensg_shared) * 0.25 + 3)
+)
+grid.arrange(ph_rna$gtable, ph_atac$gtable,
+             ncol = 2, widths = c(1.4, 1))
+dev.off()
+message("  -> B04_DEG_DAR_heatmap.pdf")
+
+# ── 6. GO enrichment on DEG-DAR genes ────────────────────────────────────────
+
+message(">>> GO enrichment: DEG-DAR genes")
+
+go_symbols <- deg_dar %>%
+  filter(!is.na(symbol), symbol != "", !grepl("^ENSG", symbol)) %>%
+  pull(symbol) %>% unique()
+
+gene_ids <- bitr(go_symbols, fromType = "SYMBOL", toType = "ENTREZID",
+                 OrgDb = org.Hs.eg.db, drop = TRUE)
+
+ego <- enrichGO(
+  gene          = gene_ids$ENTREZID,
+  OrgDb         = org.Hs.eg.db,
+  ont           = GO_ONT,
+  pAdjustMethod = "BH",
+  pvalueCutoff  = P_CUTOFF,
+  readable      = TRUE
+)
+
+if (!is.null(ego) && nrow(ego) > 0) {
+  ego_s <- clusterProfiler::simplify(ego, cutoff = GO_SIMPLIFY,
+                                     by = "p.adjust", select_fun = min)
+  write.csv(
+    as.data.frame(ego_s),
+    file.path(PATHS$tables, "B04_DEG_DAR_GO_BP.csv"),
+    row.names = FALSE
+  )
+  p_go <- dotplot(ego_s, showCategory = 20) +
+    labs(
+      title    = "GO Biological Process — DEG-DAR genes",
+      subtitle = sprintf("Input: %d genes | p.adj < %s (BH)", length(go_symbols), P_CUTOFF)
+    ) +
+    theme(plot.title = element_text(size = 11))
+  save_plot(p_go, "B04_DEG_DAR_GO_dotplot", width = 9, height = 10)
+  message("  -> B04_DEG_DAR_GO_BP.csv")
+} else {
+  message("  No significant GO terms")
 }
 
-# Fisher's exact test for enrichment of DEGs among DA genes
-n_degs <- sum(merged_df$sig_RNA, na.rm = TRUE)
-n_da_genes <- sum(merged_df$sig_ATAC, na.rm = TRUE)
-n_concordant <- nrow(concordant)
-n_universe <- nrow(merged_df)
+# ── 7. Summary ────────────────────────────────────────────────────────────────
 
-message("DEGs: ", n_degs)
-message("DA genes: ", n_da_genes)
-message("Concordant: ", n_concordant)
-message("Universe: ", n_universe)
-
-# Build contingency table
-fisher_table <- matrix(c(
-  n_concordant,                          # DEG & DA
-  n_degs - n_concordant,                 # DEG but not DA
-  n_da_genes - n_concordant,             # DA but not DEG
-  n_universe - n_degs - n_da_genes + n_concordant  # neither
-), nrow = 2, byrow = TRUE,
-dimnames = list(c("DA", "Not_DA"), c("DEG", "Not_DEG")))
-
-fisher_res <- fisher.test(fisher_table, alternative = "greater")
+message("\n>>> Summary")
+message("  DEG-DAR pairs   : ", n_pairs)
+message("  Unique genes    : ", n_genes)
+message("  Heatmap genes   : ", length(ensg_shared))
+message("  UP-Opening      : ", sum(deg_dar$Direction == "UP-Opening"))
+message("  DOWN-Closing    : ", sum(deg_dar$Direction == "DOWN-Closing"))
+message("  UP-Closing      : ", sum(deg_dar$Direction == "UP-Closing"))
+message("  DOWN-Opening    : ", sum(deg_dar$Direction == "DOWN-Opening"))
 
 save_session("B04")
 message("\n✓ B04 complete.\n")
