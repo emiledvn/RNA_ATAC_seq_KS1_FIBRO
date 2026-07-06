@@ -170,4 +170,145 @@ p_volcano <- ggplot(volcano_df, aes(x = log2FoldChange, y = log10_padj)) +
   BASE_THEME + theme(legend.position = "top")
 save_plot(p_volcano, "volcano", width = 7, height = 6)
 
+
+# ── GO enrichment revised plots (Reviewer 2, Comment 8) ──────────────────────
+# Strategy:
+#   - Original dotplot() call kept unchanged (appended, not replaced)
+#   - New enrichment ratio version added below each
+#   - Figure 7B (shared GO pathways) dropped per AE guidance
+#
+# Paths
+TABLES <- "../../ED25_005_ALL_CLEANEDUP/results/RNA/results/tables/"
+
+# ── Helper ────────────────────────────────────────────────────────────────────
+parse_ratio <- function(x) {
+  sapply(x, function(r) {
+    v <- as.numeric(strsplit(r, "/")[[1]])
+    v[1] / v[2]
+  })
+}
+
+go_dotplot_revised <- function(go_df, title, subtitle, n = 15) {
+  df <- go_df %>%
+    filter(!is.na(p.adjust)) %>%
+    arrange(p.adjust) %>%
+    slice_head(n = n) %>%
+    mutate(
+      enrichment_ratio = parse_ratio(GeneRatio) / parse_ratio(BgRatio),
+      label = factor(
+        str_wrap(Description, 40),
+        levels = str_wrap(Description[order(enrichment_ratio)], 40)
+      )
+    )
+  
+  ggplot(df, aes(x = enrichment_ratio, y = label, colour = -log10(p.adjust))) +
+    geom_point(size = 8, alpha = 0.9) +
+    geom_text(aes(label = Count), colour = "white", size = 2.8, fontface = "bold") +
+    scale_colour_gradientn(
+      colours = c("#2166ac", "#4393c3", "#d6604d", "#b2182b"),
+      name    = expression(-log[10](FDR)),
+      labels  = scales::label_number(accuracy = 0.1)
+    ) +
+    labs(title = title, subtitle = subtitle,
+         x = "Enrichment ratio", y = NULL) +
+    theme_bw(base_size = 11) +
+    theme(
+      panel.grid.minor  = element_blank(),
+      panel.grid.major  = element_line(colour = "grey93", linewidth = 0.3),
+      plot.title        = element_text(face = "bold", size = 11),
+      plot.subtitle     = element_text(size = 8.5, colour = "grey40"),
+      axis.text.y       = element_text(size = 9)
+    )
+}
+
+# ── Fig 4B — RNA GO (strict threshold) ───────────────────────────────────────
+go_rna_strict <- read.csv(file.path(TABLES, "B02_RNA_GO_BP_strict.csv"))
+
+# Original (kept unchanged)
+p_rna_go_original <- dotplot(
+  new("enrichResult", result = go_rna_strict),
+  showCategory = 15
+) +
+  ggtitle("GO Biological Process enrichment (strict)",
+          subtitle = "Input: DEGs | p.adj < 0.05, |LFC| > 1")
+save_plot(p_rna_go_original, "B06_Fig4B_RNA_GO_original", width = 9, height = 10)
+
+# Revised (enrichment ratio + count labels)
+p_rna_go_revised <- go_dotplot_revised(
+  go_rna_strict,
+  title    = "GO Biological Process enrichment",
+  subtitle = "Top 15 terms | FDR < 0.05, |LFC| > 1",
+  n        = 15
+)
+save_plot(p_rna_go_revised, "B06_Fig4B_RNA_GO_revised", width = 7, height = 7)
+
+# ── Fig 6C/D — ATAC GO (opening + closing) ───────────────────────────────────
+go_open  <- read.csv(file.path(TABLES, "B03_ATAC_GO_opening.csv"))
+go_close <- read.csv(file.path(TABLES, "B03_ATAC_GO_closing.csv"))
+
+# Original (kept unchanged)
+p_atac_open_original <- dotplot(
+  new("enrichResult", result = go_open),
+  showCategory = 15
+) +
+  ggtitle("GO BP: opening peaks")
+save_plot(p_atac_open_original, "B06_Fig6C_ATAC_GO_opening_original", width = 9, height = 9)
+
+p_atac_close_original <- dotplot(
+  new("enrichResult", result = go_close),
+  showCategory = 15
+) +
+  ggtitle("GO BP: closing peaks")
+save_plot(p_atac_close_original, "B06_Fig6D_ATAC_GO_closing_original", width = 9, height = 9)
+
+# Revised — faceted opening + closing
+go_atac_combined <- bind_rows(
+  go_open  %>% mutate(direction = "Opening"),
+  go_close %>% mutate(direction = "Closing")
+) %>%
+  filter(!is.na(p.adjust)) %>%
+  group_by(direction) %>%
+  arrange(p.adjust) %>%
+  slice_head(n = 15) %>%
+  ungroup() %>%
+  mutate(
+    enrichment_ratio = parse_ratio(GeneRatio) / parse_ratio(BgRatio),
+    label = str_wrap(Description, 35)
+  )
+
+p_atac_go_revised <- ggplot(go_atac_combined,
+                            aes(x = enrichment_ratio,
+                                y = reorder(label, enrichment_ratio),
+                                colour = -log10(p.adjust))) +
+  geom_point(size = 8, alpha = 0.9) +
+  geom_text(aes(label = Count), colour = "white", size = 2.8, fontface = "bold") +
+  scale_colour_gradientn(
+    colours = c("#2166ac", "#4393c3", "#d6604d", "#b2182b"),
+    name    = expression(-log[10](FDR)),
+    labels  = scales::label_number(accuracy = 0.1)
+  ) +
+  facet_wrap(~ direction, scales = "free_y", ncol = 2) +
+  labs(
+    title    = "GO Biological Process enrichment: ATAC-seq DA peaks",
+    subtitle = "Top 15 terms per direction | FDR < 0.05, |LFC| > 1",
+    x = "Enrichment ratio", y = NULL
+  ) +
+  theme_bw(base_size = 11) +
+  theme(
+    panel.grid.minor  = element_blank(),
+    panel.grid.major  = element_line(colour = "grey93", linewidth = 0.3),
+    strip.background  = element_rect(fill = "grey95", colour = "grey80"),
+    strip.text        = element_text(face = "bold", size = 10),
+    plot.title        = element_text(face = "bold", size = 11),
+    plot.subtitle     = element_text(size = 8.5, colour = "grey40"),
+    axis.text.y       = element_text(size = 8.5)
+  )
+save_plot(p_atac_go_revised, "B06_Fig6CD_ATAC_GO_revised", width = 13, height = 7)
+
+# ── Figure 7B — DROPPED ───────────────────────────────────────────────────────
+# Removed per Associate Editor guidance: Technical Validation should be limited
+# to dataset validation. The shared GO pathway figure (Fig 7B) goes beyond this
+# scope. The scatter plot (Fig 7, formerly 7A) is retained.
+# See revision_notes/figure7_text_edits.md for required manuscript text changes.
+
 save_session("B06")
