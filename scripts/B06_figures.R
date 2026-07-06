@@ -171,16 +171,19 @@ p_volcano <- ggplot(volcano_df, aes(x = log2FoldChange, y = log10_padj)) +
 save_plot(p_volcano, "volcano", width = 7, height = 6)
 
 
-# ── GO enrichment revised plots (Reviewer 2, Comment 8) ──────────────────────
-# Strategy:
-#   - Original dotplot() call kept unchanged (appended, not replaced)
-#   - New enrichment ratio version added below each
-#   - Figure 7B (shared GO pathways) dropped per AE guidance
-#
-# Paths
+
+
+
+
+
+
+
+
+
+
+# ── GO enrichment plots (Reviewer 2) ───────────────────────────────
 TABLES <- "../../ED25_005_ALL_CLEANEDUP/results/RNA/results/tables/"
 
-# ── Helper ────────────────────────────────────────────────────────────────────
 parse_ratio <- function(x) {
   sapply(x, function(r) {
     v <- as.numeric(strsplit(r, "/")[[1]])
@@ -197,7 +200,7 @@ go_dotplot_revised <- function(go_df, title, subtitle, n = 15) {
       enrichment_ratio = parse_ratio(GeneRatio) / parse_ratio(BgRatio),
       label = factor(
         str_wrap(Description, 40),
-        levels = str_wrap(Description[order(enrichment_ratio)], 40)
+        levels = str_wrap(Description[order(-enrichment_ratio)], 40)
       )
     )
   
@@ -221,47 +224,20 @@ go_dotplot_revised <- function(go_df, title, subtitle, n = 15) {
     )
 }
 
-# ── Fig 4B — RNA GO (strict threshold) ───────────────────────────────────────
+# Fig 4B — RNA GO
 go_rna_strict <- read.csv(file.path(TABLES, "B02_RNA_GO_BP_strict.csv"))
 
-# Original (kept unchanged)
-p_rna_go_original <- dotplot(
-  new("enrichResult", result = go_rna_strict),
-  showCategory = 15
-) +
-  ggtitle("GO Biological Process enrichment (strict)",
-          subtitle = "Input: DEGs | p.adj < 0.05, |LFC| > 1")
-save_plot(p_rna_go_original, "B06_Fig4B_RNA_GO_original", width = 9, height = 10)
-
-# Revised (enrichment ratio + count labels)
 p_rna_go_revised <- go_dotplot_revised(
   go_rna_strict,
   title    = "GO Biological Process enrichment",
-  subtitle = "Top 15 terms | FDR < 0.05, |LFC| > 1",
-  n        = 15
+  subtitle = "Top 15 terms | FDR < 0.05, |LFC| > 1"
 )
 save_plot(p_rna_go_revised, "B06_Fig4B_RNA_GO_revised", width = 7, height = 7)
 
-# ── Fig 6C/D — ATAC GO (opening + closing) ───────────────────────────────────
+# Fig 6C/D — ATAC GO
 go_open  <- read.csv(file.path(TABLES, "B03_ATAC_GO_opening.csv"))
 go_close <- read.csv(file.path(TABLES, "B03_ATAC_GO_closing.csv"))
 
-# Original (kept unchanged)
-p_atac_open_original <- dotplot(
-  new("enrichResult", result = go_open),
-  showCategory = 15
-) +
-  ggtitle("GO BP: opening peaks")
-save_plot(p_atac_open_original, "B06_Fig6C_ATAC_GO_opening_original", width = 9, height = 9)
-
-p_atac_close_original <- dotplot(
-  new("enrichResult", result = go_close),
-  showCategory = 15
-) +
-  ggtitle("GO BP: closing peaks")
-save_plot(p_atac_close_original, "B06_Fig6D_ATAC_GO_closing_original", width = 9, height = 9)
-
-# Revised — faceted opening + closing
 go_atac_combined <- bind_rows(
   go_open  %>% mutate(direction = "Opening"),
   go_close %>% mutate(direction = "Closing")
@@ -272,8 +248,9 @@ go_atac_combined <- bind_rows(
   slice_head(n = 15) %>%
   ungroup() %>%
   mutate(
+    direction        = factor(direction, levels = c("Opening", "Closing")),
     enrichment_ratio = parse_ratio(GeneRatio) / parse_ratio(BgRatio),
-    label = str_wrap(Description, 35)
+    label            = str_wrap(Description, 35)
   )
 
 p_atac_go_revised <- ggplot(go_atac_combined,
@@ -287,7 +264,7 @@ p_atac_go_revised <- ggplot(go_atac_combined,
     name    = expression(-log[10](FDR)),
     labels  = scales::label_number(accuracy = 0.1)
   ) +
-  facet_wrap(~ direction, scales = "free_y", ncol = 2) +
+  facet_wrap(~ direction, scales = "free", ncol = 2) +
   labs(
     title    = "GO Biological Process enrichment: ATAC-seq DA peaks",
     subtitle = "Top 15 terms per direction | FDR < 0.05, |LFC| > 1",
@@ -305,10 +282,14 @@ p_atac_go_revised <- ggplot(go_atac_combined,
   )
 save_plot(p_atac_go_revised, "B06_Fig6CD_ATAC_GO_revised", width = 13, height = 7)
 
-# ── Figure 7B — DROPPED ───────────────────────────────────────────────────────
-# Removed per Associate Editor guidance: Technical Validation should be limited
-# to dataset validation. The shared GO pathway figure (Fig 7B) goes beyond this
-# scope. The scatter plot (Fig 7, formerly 7A) is retained.
-# See revision_notes/figure7_text_edits.md for required manuscript text changes.
+# Fig 7B — Integration GO
+go_int <- read.csv(file.path(TABLES, "B04_DEG_DAR_GO_BP.csv"))
+
+p_int_go_revised <- go_dotplot_revised(
+  go_int,
+  title    = "GO Biological Process enrichment: DEG-DAR genes",
+  subtitle = sprintf("All %d significant terms | FDR < 0.05", nrow(go_int %>% filter(!is.na(p.adjust))))
+)
+save_plot(p_int_go_revised, "B06_Fig7B_integration_GO_revised", width = 7, height = 5)
 
 save_session("B06")
