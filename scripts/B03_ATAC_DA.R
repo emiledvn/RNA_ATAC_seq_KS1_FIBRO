@@ -1,7 +1,7 @@
 # B03_ATAC_DA.R
 # Differential accessibility analysis with RUVSeq normalization
 
-source("00_config.R")
+source("scripts/00_config.R")
 init_dirs()
 
 suppressPackageStartupMessages({

@@ -1,7 +1,7 @@
 # B01_QC_collapse.R
 # Quality control and technical replicate collapsing
 
-source("00_config.R")
+source("scripts/00_config.R")
 init_dirs()
 
 suppressPackageStartupMessages({

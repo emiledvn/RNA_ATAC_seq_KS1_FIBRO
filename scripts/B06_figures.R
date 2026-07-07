@@ -1,7 +1,7 @@
 # B06_figures.R
 # Publication figure generation
 
-source("00_config.R")
+source("scripts/00_config.R")
 init_dirs()
 
 suppressPackageStartupMessages({
@@ -182,7 +182,7 @@ save_plot(p_volcano, "volcano", width = 7, height = 6)
 
 
 # ── GO enrichment plots (Reviewer 2) ───────────────────────────────
-TABLES <- "../../ED25_005_ALL_CLEANEDUP/results/RNA/results/tables/"
+TABLES <- PATHS$tables
 
 parse_ratio <- function(x) {
   sapply(x, function(r) {
