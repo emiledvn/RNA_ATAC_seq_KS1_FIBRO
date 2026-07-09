@@ -282,6 +282,12 @@ p_ruv <- ggplot(ruv_df, aes(W_1, W_2, color = status, shape = batch)) +
 
 save_plot(p_ruv, "B02_RNA_RUV_factors", width = 7, height = 6)
 
+# Background universe for GO enrichment: genes that passed expression
+# filtering and were actually tested for DE (not all annotated genes)
+universe_ids <- bitr(unique(na.omit(res_df$symbol)), fromType = "SYMBOL",
+                     toType = "ENTREZID", OrgDb = org.Hs.eg.db, drop = TRUE)$ENTREZID
+saveRDS(universe_ids, file.path(PATHS$rds, "B02_RNA_GO_universe_entrez.rds"))
+
 # GO enrichment (Biological Process) with soft LFC threshold
 deg_symbols <- res_df %>%
   filter(padj < P_CUTOFF & abs(log2FoldChange) > LFC_CUTOFF_SOFT) %>%
@@ -292,6 +298,7 @@ gene_ids <- bitr(deg_symbols, fromType = "SYMBOL", toType = "ENTREZID",
 
 ego <- enrichGO(
   gene          = gene_ids$ENTREZID,
+  universe      = universe_ids,
   OrgDb         = org.Hs.eg.db,
   ont           = GO_ONT,
   pAdjustMethod = "BH",
@@ -319,7 +326,8 @@ deg_strict <- res_df %>%
 if (length(deg_strict) >= 10) {
   ids_strict <- bitr(deg_strict, fromType = "SYMBOL", toType = "ENTREZID",
                      OrgDb = org.Hs.eg.db, drop = TRUE)
-  ego_strict <- enrichGO(gene = ids_strict$ENTREZID, OrgDb = org.Hs.eg.db,
+  ego_strict <- enrichGO(gene = ids_strict$ENTREZID, universe = universe_ids,
+                         OrgDb = org.Hs.eg.db,
                          ont = GO_ONT, pAdjustMethod = "BH",
                          pvalueCutoff = P_CUTOFF, readable = TRUE)
   if (!is.null(ego_strict) && nrow(ego_strict) > 0) {

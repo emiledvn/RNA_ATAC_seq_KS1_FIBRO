@@ -315,6 +315,10 @@ p_ruv <- ggplot(ruv_df, aes(W_1, W_2, color = status, shape = sex)) +
 save_plot(p_ruv, "B03_ATAC_RUV_factors", width = 7, height = 6)
 
 # GO enrichment for opening vs closing peaks
+# Background universe: reuse the RNA-detected (expressed) gene universe from
+# B02, so ATAC GO results are tested against the same background as RNA GO
+rna_universe_entrez <- readRDS(file.path(PATHS$rds, "B02_RNA_GO_universe_entrez.rds"))
+
 run_atac_go <- function(peaks_sub, label) {
   if (nrow(peaks_sub) < 20) {
     message("  Skipping GO [", label, "] — n=", nrow(peaks_sub), " peaks")
@@ -323,7 +327,8 @@ run_atac_go <- function(peaks_sub, label) {
   genes <- anno_df %>%
     filter(peak_id %in% peaks_sub$peak_id) %>%
     pull(geneId) %>% unique() %>% na.omit()
-  ego <- enrichGO(gene = genes, OrgDb = org.Hs.eg.db, ont = GO_ONT,
+  ego <- enrichGO(gene = genes, universe = rna_universe_entrez,
+                  OrgDb = org.Hs.eg.db, ont = GO_ONT,
                   pAdjustMethod = "BH", readable = TRUE)
   if (is.null(ego) || nrow(ego) == 0) return(NULL)
   ego_s <- clusterProfiler::simplify(ego, cutoff = GO_SIMPLIFY,
