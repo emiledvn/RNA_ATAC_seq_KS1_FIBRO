@@ -170,6 +170,69 @@ p_volcano <- ggplot(volcano_df, aes(x = log2FoldChange, y = log10_padj)) +
   BASE_THEME + theme(legend.position = "top")
 save_plot(p_volcano, "volcano", width = 7, height = 6)
 
+# ── Fig 3B: DEG heatmap ───────────────────────────────────────────────────────
+message("> Fig 3B: DEG heatmap (top 100, |LFC| > 1)...")
+
+top_degs <- read.csv(PATHS$rna_de) %>%
+  filter(!is.na(padj),
+         padj < P_CUTOFF,
+         abs(log2FoldChange) > LFC_CUTOFF,
+         symbol != "NPIPA8",
+         symbol != "") %>%
+  slice_min(padj, n = 100, with_ties = FALSE) %>%
+  pull(symbol)
+
+gene_map <- read.table(PATHS$gene_map, header = TRUE, sep = "\t",
+                       row.names = 1, check.names = FALSE) %>%
+  rownames_to_column("gene_id")   # Ensembl ID is the rowname in B01 output
+
+ens_ids <- gene_map %>%
+  filter(gene_name %in% top_degs) %>%
+  dplyr::select(gene_id, gene_name) %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+heatmap_mat <- mat_cor[
+  intersect(ens_ids$gene_id, rownames(mat_cor)), , drop = FALSE
+]
+rownames(heatmap_mat) <- ens_ids$gene_name[
+  match(rownames(heatmap_mat), ens_ids$gene_id)
+]
+
+# Z-score rows; cap at ±3 to prevent outliers from washing out the palette
+heatmap_z <- t(scale(t(heatmap_mat)))
+heatmap_z <- pmax(pmin(heatmap_z, 3), -3)
+
+anno_col <- meta_rna %>%
+  dplyr::select(sample_id, status) %>%
+  column_to_rownames("sample_id")
+
+anno_colors <- list(
+  status = setNames(STATUS_COLORS, names(STATUS_COLORS))
+)
+
+# Column order: controls then KS, alphabetical within group
+col_order <- meta_rna %>%
+  arrange(status, sample_id) %>%
+  pull(sample_id)
+heatmap_z <- heatmap_z[, intersect(col_order, colnames(heatmap_z)), drop = FALSE]
+
+pheatmap::pheatmap(
+  heatmap_z,
+  annotation_col    = anno_col,
+  annotation_colors = anno_colors,
+  color             = colorRampPalette(c("#4575b4", "white", "#d73027"))(100),
+  cluster_cols      = FALSE,
+  cluster_rows      = TRUE,
+  show_colnames     = FALSE,
+  fontsize_row      = 6,
+  border_color      = NA,
+  main              = sprintf("Top %d DEGs — KS type I vs control (z-score, capped ±3)",
+                              nrow(heatmap_z)),
+  filename          = file.path(PATHS$plots, "B06_Fig3B_DEG_heatmap.pdf"),
+  width             = 7,
+  height            = 14
+)
+message("  -> ", file.path(PATHS$plots, "B06_Fig3B_DEG_heatmap.pdf"))
 
 
 
@@ -184,11 +247,23 @@ save_plot(p_volcano, "volcano", width = 7, height = 6)
 # ── GO enrichment plots (Reviewer 2) ───────────────────────────────
 TABLES <- PATHS$tables
 
+# Explicit column types: a GO table can legitimately be header-only with
+# zero rows (nothing significant under the current universe/threshold).
+# read.csv() can't infer types from empty data and defaults such columns
+# to logical, which breaks bind_rows() against a non-empty table of the
+# same shape — so pin the enrichGO() output schema explicitly.
+GO_COL_TYPES <- c(ID = "character", Description = "character",
+                  GeneRatio = "character", BgRatio = "character",
+                  pvalue = "numeric", p.adjust = "numeric",
+                  qvalue = "numeric", geneID = "character",
+                  Count = "integer")
+read_go_csv <- function(path) read.csv(path, colClasses = GO_COL_TYPES)
+
 parse_ratio <- function(x) {
-  sapply(x, function(r) {
+  vapply(x, function(r) {
     v <- as.numeric(strsplit(r, "/")[[1]])
     v[1] / v[2]
-  })
+  }, numeric(1))
 }
 
 go_dotplot_revised <- function(go_df, title, subtitle, n = 15) {
@@ -225,7 +300,7 @@ go_dotplot_revised <- function(go_df, title, subtitle, n = 15) {
 }
 
 # Fig 4B — RNA GO
-go_rna_strict <- read.csv(file.path(TABLES, "B02_RNA_GO_BP_strict.csv"))
+go_rna_strict <- read_go_csv(file.path(TABLES, "B02_RNA_GO_BP_strict.csv"))
 
 p_rna_go_revised <- go_dotplot_revised(
   go_rna_strict,
@@ -235,8 +310,8 @@ p_rna_go_revised <- go_dotplot_revised(
 save_plot(p_rna_go_revised, "B06_Fig4B_RNA_GO_revised", width = 7, height = 7)
 
 # Fig 6C/D — ATAC GO
-go_open  <- read.csv(file.path(TABLES, "B03_ATAC_GO_opening.csv"))
-go_close <- read.csv(file.path(TABLES, "B03_ATAC_GO_closing.csv"))
+go_open  <- read_go_csv(file.path(TABLES, "B03_ATAC_GO_opening.csv"))
+go_close <- read_go_csv(file.path(TABLES, "B03_ATAC_GO_closing.csv"))
 
 go_atac_combined <- bind_rows(
   go_open  %>% mutate(direction = "Opening"),
@@ -283,7 +358,7 @@ p_atac_go_revised <- ggplot(go_atac_combined,
 save_plot(p_atac_go_revised, "B06_Fig6CD_ATAC_GO_revised", width = 13, height = 7)
 
 # Fig 7B — Integration GO
-go_int <- read.csv(file.path(TABLES, "B04_DEG_DAR_GO_BP.csv"))
+go_int <- read_go_csv(file.path(TABLES, "B04_DEG_DAR_GO_BP.csv"))
 
 p_int_go_revised <- go_dotplot_revised(
   go_int,

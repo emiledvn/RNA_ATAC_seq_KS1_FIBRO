@@ -319,9 +319,26 @@ save_plot(p_ruv, "B03_ATAC_RUV_factors", width = 7, height = 6)
 # B02, so ATAC GO results are tested against the same background as RNA GO
 rna_universe_entrez <- readRDS(file.path(PATHS$rds, "B02_RNA_GO_universe_entrez.rds"))
 
+# Empty result frame matching enrichGO's column layout, so a "nothing
+# significant" run always overwrites any stale file from a prior run
+# (e.g. a previous universe or threshold) instead of leaving it in place
+EMPTY_GO_COLS <- c("ID", "Description", "GeneRatio", "BgRatio",
+                   "pvalue", "p.adjust", "qvalue", "geneID", "Count")
+
 run_atac_go <- function(peaks_sub, label) {
+  out_csv  <- file.path(PATHS$tables, paste0("B03_ATAC_GO_", label, ".csv"))
+  out_plot <- file.path(PATHS$plots, paste0("B03_ATAC_GO_", label, ".pdf"))
+
+  write_empty <- function() {
+    write.csv(setNames(data.frame(matrix(nrow = 0, ncol = length(EMPTY_GO_COLS))),
+                       EMPTY_GO_COLS),
+              out_csv, row.names = FALSE)
+    if (file.exists(out_plot)) file.remove(out_plot)
+  }
+
   if (nrow(peaks_sub) < 20) {
     message("  Skipping GO [", label, "] — n=", nrow(peaks_sub), " peaks")
+    write_empty()
     return(NULL)
   }
   genes <- anno_df %>%
@@ -330,12 +347,14 @@ run_atac_go <- function(peaks_sub, label) {
   ego <- enrichGO(gene = genes, universe = rna_universe_entrez,
                   OrgDb = org.Hs.eg.db, ont = GO_ONT,
                   pAdjustMethod = "BH", readable = TRUE)
-  if (is.null(ego) || nrow(ego) == 0) return(NULL)
+  if (is.null(ego) || nrow(ego) == 0) {
+    message("  No significant GO terms [", label, "]")
+    write_empty()
+    return(NULL)
+  }
   ego_s <- clusterProfiler::simplify(ego, cutoff = GO_SIMPLIFY,
                                      by = "p.adjust", select_fun = min)
-  write.csv(as.data.frame(ego_s),
-            file.path(PATHS$tables, paste0("B03_ATAC_GO_", label, ".csv")),
-            row.names = FALSE)
+  write.csv(as.data.frame(ego_s), out_csv, row.names = FALSE)
   p <- dotplot(ego_s, showCategory = 15) +
     ggtitle(paste0("GO BP: ", label, " peaks (n=", length(genes), " genes)"))
   save_plot(p, paste0("B03_ATAC_GO_", label), width = 9, height = 9)

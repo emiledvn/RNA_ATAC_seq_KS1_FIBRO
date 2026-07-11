@@ -190,6 +190,11 @@ candidate_genes <- c("VANGL2", "WNT5A", "ROR2", "CELSR1", "PRICKLE1",
                  "ICAM1", "IL6", "ALPL", "PDE10A", "GUCY1A2", "FZD6")
 top_genes   <- head(na.omit(res_df$symbol[!is.na(res_df$padj)]), 15)
 
+# Known mapping/annotation artifact (e.g. segmental-duplication paralog
+# collapsing) -- flagged rather than text-labelled, matching B06_figures.R's
+# publication volcano treatment, so it reads consistently across figures.
+ARTIFACT_GENES <- c("NPIPA8")
+
 volcano_df <- res_df %>%
   mutate(
     Class = case_when(
@@ -197,22 +202,26 @@ volcano_df <- res_df %>%
       padj < P_CUTOFF & log2FoldChange < -LFC_CUTOFF ~ "Downregulated",
       TRUE ~ "Not Significant"
     ),
-    neg_log10_padj = pmin(-log10(padj), 300)
+    neg_log10_padj = pmin(-log10(padj), 300),
+    is_artifact = symbol %in% ARTIFACT_GENES
   )
 
 p_volc <- ggplot(volcano_df, aes(log2FoldChange, neg_log10_padj)) +
-  geom_point(aes(color = Class), alpha = 0.6, size = 1.5) +
+  geom_point(data = filter(volcano_df, !is_artifact),
+            aes(color = Class), alpha = 0.6, size = 1.5) +
+  geom_point(data = filter(volcano_df, is_artifact),
+            shape = 2, size = 3, colour = "black", stroke = 1) +
   scale_color_manual(values = COLORS_VOLCANO) +
   geom_vline(xintercept = c(-LFC_CUTOFF, LFC_CUTOFF),
              linetype = "dashed", color = "grey50") +
   geom_hline(yintercept = -log10(P_CUTOFF),
              linetype = "dashed", color = "grey50") +
   geom_text_repel(
-    data = filter(volcano_df, symbol %in% unique(c(top_genes, candidate_genes))),
+    data = filter(volcano_df, symbol %in% unique(c(top_genes, candidate_genes)), !is_artifact),
     aes(label = symbol), size = 3, max.overlaps = Inf, fontface = "bold"
   ) +
   labs(title    = "RNA-seq: KS_I vs control",
-       subtitle = sprintf("%d DEGs (p.adj < %s, |Log2FC| > %s)",
+       subtitle = sprintf("%d DEGs (p.adj < %s, |Log2FC| > %s) | open triangle = known artifact gene",
                           n_up + n_down, P_CUTOFF, LFC_CUTOFF),
        x = "Log2 Fold Change", y = "-log10(adjusted p-value)") +
   theme_bw() + theme(aspect.ratio = 1)
@@ -243,13 +252,19 @@ sig_genes <- res_df %>%
 
 if (nrow(sig_genes) > 4) {
   mat_heat           <- mat_vis[sig_genes$gene_id, ]
-  rownames(mat_heat) <- make.unique(as.character(sig_genes$symbol))
+  row_labels         <- make.unique(as.character(sig_genes$symbol))
+  # Flag the same known artifact gene as the volcano plots, since pheatmap
+  # has no per-row shape/marker -- an asterisk on the row label is the
+  # equivalent treatment for a heatmap.
+  row_labels[sig_genes$symbol %in% ARTIFACT_GENES] <-
+    paste0(row_labels[sig_genes$symbol %in% ARTIFACT_GENES], " *")
+  rownames(mat_heat) <- row_labels
 
   save_heatmap(
     mat         = mat_heat,
     anno_col    = as.data.frame(colData(dds_ruv)[, c("status", "sex")]),
     anno_colors = list(status = COLORS_STATUS, sex = COLORS_SEX),
-    title       = sprintf("Top %d DEGs\n(p.adj < %s, |Log2FC| > %s)",
+    title       = sprintf("Top %d DEGs\n(p.adj < %s, |Log2FC| > %s) | * = known artifact gene",
                           nrow(sig_genes), P_CUTOFF, LFC_CUTOFF),
     name        = "B02_RNA_heatmap_top100"
   )
@@ -319,6 +334,20 @@ p_go <- dotplot(ego_s, showCategory = 20) +
 save_plot(p_go, "B02_RNA_GO_dotplot", width = 9, height = 10)
 
 # GO enrichment with strict LFC threshold
+# Empty result frame matching enrichGO's column layout, so a "nothing
+# significant" run always overwrites any stale file from a prior run
+# (e.g. a previous universe or threshold) instead of leaving it in place
+EMPTY_GO_COLS <- c("ID", "Description", "GeneRatio", "BgRatio",
+                   "pvalue", "p.adjust", "qvalue", "geneID", "Count")
+strict_csv  <- file.path(PATHS$tables, "B02_RNA_GO_BP_strict.csv")
+strict_plot <- file.path(PATHS$plots, "B02_RNA_GO_dotplot_strict.pdf")
+write_empty_strict <- function() {
+  write.csv(setNames(data.frame(matrix(nrow = 0, ncol = length(EMPTY_GO_COLS))),
+                     EMPTY_GO_COLS),
+            strict_csv, row.names = FALSE)
+  if (file.exists(strict_plot)) file.remove(strict_plot)
+}
+
 deg_strict <- res_df %>%
   filter(padj < P_CUTOFF & abs(log2FoldChange) > LFC_CUTOFF) %>%
   pull(symbol) %>% na.omit() %>% unique()
@@ -333,15 +362,19 @@ if (length(deg_strict) >= 10) {
   if (!is.null(ego_strict) && nrow(ego_strict) > 0) {
     ego_strict_s <- clusterProfiler::simplify(ego_strict, cutoff = GO_SIMPLIFY,
                                               by = "p.adjust", select_fun = min)
-    write.csv(as.data.frame(ego_strict_s),
-              file.path(PATHS$tables, "B02_RNA_GO_BP_strict.csv"),
-              row.names = FALSE)
+    write.csv(as.data.frame(ego_strict_s), strict_csv, row.names = FALSE)
     p_go_strict <- dotplot(ego_strict_s, showCategory = 20) +
       ggtitle("GO BP enrichment (strict threshold)",
               subtitle = sprintf("Input: %d DEGs (p.adj < %s, |Log2FC| > %s)",
                                  length(deg_strict), P_CUTOFF, LFC_CUTOFF))
     save_plot(p_go_strict, "B02_RNA_GO_dotplot_strict", width = 9, height = 10)
+  } else {
+    message("  No significant GO terms [strict]")
+    write_empty_strict()
   }
+} else {
+  message("  Skipping strict GO — only ", length(deg_strict), " DEGs (<10)")
+  write_empty_strict()
 }
 
 save_session("B02")
